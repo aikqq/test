@@ -2,7 +2,9 @@
 
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { writeFile } from "node:fs/promises";
 
+import { summarize, toMarkdown } from "./report.js";
 import {
   addTask,
   completeTask,
@@ -11,7 +13,7 @@ import {
   saveTasks,
 } from "./task-store.js";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 
 export function helpText() {
   return [
@@ -23,6 +25,8 @@ export function helpText() {
     "  miniboard add <title>",
     "  miniboard list [--open|--done|--all]",
     "  miniboard done <task-id>",
+    "  miniboard summary",
+    "  miniboard export <report.md>",
     "  miniboard --help | --version",
   ].join("\n");
 }
@@ -73,6 +77,19 @@ export async function run(args = process.argv.slice(2), options = {}) {
     }
     await saveTasks(filePath, result.tasks);
     output(`Completed ${rest[0]}`);
+    return 0;
+  }
+
+  if (command === "summary") {
+    const summary = summarize(tasks);
+    output(`${summary.completed}/${summary.total} complete (${summary.completionRate}%), ${summary.open} open`);
+    return 0;
+  }
+
+  if (command === "export") {
+    const destination = resolve(rest[0] ?? "miniboard-report.md");
+    await writeFile(destination, toMarkdown(tasks), "utf8");
+    output(`Exported report to ${destination}`);
     return 0;
   }
 

@@ -22,5 +22,10 @@ npm start -- add "Write release notes"
 npm start -- list
 npm start -- done T0001
 npm start -- list --all
+npm start -- summary
+npm start -- export status.md
 ```
+
+`summary` prints a compact progress snapshot. `export` writes the same board as
+a Markdown report that can be attached to an issue or included in release notes.
 
