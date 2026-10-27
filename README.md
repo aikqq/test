@@ -15,6 +15,12 @@ npm test
 npm start -- --help
 ```
 
-The first iteration only provides the executable shell. Task storage and
-reporting are added in later feature branches.
+Tasks are stored in `.miniboard.json` in the current directory:
+
+```powershell
+npm start -- add "Write release notes"
+npm start -- list
+npm start -- done T0001
+npm start -- list --all
+```
 
