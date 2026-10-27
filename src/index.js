@@ -13,7 +13,7 @@ import {
   saveTasks,
 } from "./task-store.js";
 
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 
 export function helpText() {
   return [
@@ -57,7 +57,12 @@ export async function run(args = process.argv.slice(2), options = {}) {
   const tasks = await loadTasks(filePath);
 
   if (command === "add") {
-    const result = addTask(tasks, rest.join(" "));
+    const title = rest.join(" ").trim();
+    if (!title) {
+      errorOutput("Task title is required.");
+      return 1;
+    }
+    const result = addTask(tasks, title);
     await saveTasks(filePath, result.tasks);
     output(`Added ${result.task.id}: ${result.task.title}`);
     return 0;
@@ -70,6 +75,10 @@ export async function run(args = process.argv.slice(2), options = {}) {
   }
 
   if (command === "done") {
+    if (!rest[0]) {
+      errorOutput("Task id is required.");
+      return 1;
+    }
     const result = completeTask(tasks, rest[0]);
     if (!result.changed) {
       errorOutput(`Task not found or already complete: ${rest[0] ?? "(missing id)"}`);

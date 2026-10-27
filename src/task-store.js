@@ -19,6 +19,9 @@ export async function saveTasks(filePath, tasks) {
 }
 
 export function addTask(tasks, title, now = new Date()) {
+  const normalizedTitle = String(title).trim();
+  if (!normalizedTitle) throw new TypeError("Task title is required.");
+
   const nextNumber = tasks.reduce((largest, task) => {
     const value = Number.parseInt(String(task.id).replace(/^T/, ""), 10);
     return Number.isFinite(value) ? Math.max(largest, value) : largest;
@@ -26,7 +29,7 @@ export function addTask(tasks, title, now = new Date()) {
 
   const task = {
     id: `T${String(nextNumber).padStart(4, "0")}`,
-    title,
+    title: normalizedTitle,
     completed: false,
     createdAt: now.toISOString(),
     completedAt: null,
