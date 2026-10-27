@@ -9,8 +9,20 @@ import { formatTaskList, helpText, run } from "../src/index.js";
 test("help describes the executable", () => {
   const help = helpText();
 
-  assert.match(help, /MiniBoard 0\.3\.0/);
+  assert.match(help, /MiniBoard 0\.3\.1/);
   assert.match(help, /miniboard --help/);
+});
+
+test("CLI rejects incomplete commands without changing storage", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "miniboard-invalid-"));
+  const filePath = join(directory, "tasks.json");
+  const errors = [];
+  const options = { filePath, errorOutput: (message) => errors.push(message) };
+
+  assert.equal(await run(["add", "   "], options), 1);
+  assert.equal(await run(["done"], options), 1);
+  assert.deepEqual(errors, ["Task title is required.", "Task id is required."]);
+  await assert.rejects(readFile(filePath, "utf8"), { code: "ENOENT" });
 });
 
 test("CLI summarizes and exports the board", async () => {

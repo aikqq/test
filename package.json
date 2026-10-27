@@ -1,6 +1,6 @@
 {
   "name": "miniboard-cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A tiny dependency-free task board CLI used as a Git workflow demo.",
   "type": "module",
   "bin": {

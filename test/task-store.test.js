@@ -20,6 +20,11 @@ test("tasks receive stable sequential ids", () => {
   assert.equal(second.task.id, "T0002");
 });
 
+test("task titles are normalized and cannot be empty", () => {
+  assert.equal(addTask([], "  trimmed title  ").task.title, "trimmed title");
+  assert.throws(() => addTask([], "   "), /Task title is required/);
+});
+
 test("completing a task records its completion time", () => {
   const created = addTask([], "review changes").tasks;
   const result = completeTask(created, "T0001", new Date("2026-01-03T12:00:00Z"));
