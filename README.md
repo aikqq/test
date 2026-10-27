@@ -1,5 +1,7 @@
 # MiniBoard CLI
 
+[![CI](https://github.com/aikqq/test/actions/workflows/ci.yml/badge.svg)](https://github.com/aikqq/test/actions/workflows/ci.yml)
+
 MiniBoard is a deliberately small, dependency-free Node.js command-line task
 board. This repository doubles as a compact example of feature-branch
 development and iterative delivery.
