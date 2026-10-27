@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -9,8 +9,24 @@ import { formatTaskList, helpText, run } from "../src/index.js";
 test("help describes the executable", () => {
   const help = helpText();
 
-  assert.match(help, /MiniBoard 0\.2\.0/);
+  assert.match(help, /MiniBoard 0\.3\.0/);
   assert.match(help, /miniboard --help/);
+});
+
+test("CLI summarizes and exports the board", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "miniboard-report-"));
+  const filePath = join(directory, "tasks.json");
+  const reportPath = join(directory, "report.md");
+  const messages = [];
+  const options = { filePath, output: (message) => messages.push(message) };
+
+  await run(["add", "publish", "demo"], options);
+  await run(["done", "T0001"], options);
+  await run(["summary"], options);
+  await run(["export", reportPath], options);
+
+  assert.equal(messages[2], "1/1 complete (100%), 0 open");
+  assert.match(await readFile(reportPath, "utf8"), /T0001 \| Done \| publish demo/);
 });
 
 test("formats open and completed tasks", () => {
