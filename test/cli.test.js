@@ -50,6 +50,14 @@ test("formats open and completed tasks", () => {
   assert.equal(text, "[ ] T0001  first\n[x] T0002  second");
 });
 
+test("formats planning metadata when present", () => {
+  const text = formatTaskList([
+    { id: "T0007", title: "deploy", completed: false, priority: "urgent", tags: ["release"], dueDate: "2026-10-30" },
+  ]);
+
+  assert.equal(text, "[ ] T0007  deploy  !urgent #release due:2026-10-30");
+});
+
 test("CLI adds, lists and completes a task", async () => {
   const directory = await mkdtemp(join(tmpdir(), "miniboard-cli-"));
   const filePath = join(directory, "tasks.json");
@@ -67,5 +75,43 @@ test("CLI adds, lists and completes a task", async () => {
     "Completed T0001",
     "[x] T0001  prepare demo",
   ]);
+});
+
+test("CLI supports metadata, filters and lifecycle commands", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "miniboard-planning-"));
+  const filePath = join(directory, "tasks.json");
+  const messages = [];
+  const errors = [];
+  const options = {
+    filePath,
+    today: "2026-10-28",
+    output: (message) => messages.push(message),
+    errorOutput: (message) => errors.push(message),
+  };
+
+  assert.equal(await run(["add", "Ship", "release", "--priority", "urgent", "--tag", "release", "--due", "2026-10-30"], options), 0);
+  assert.equal(await run(["add", "Write", "docs", "--tag", "docs"], options), 0);
+  assert.equal(await run(["list", "--tag", "release"], options), 0);
+  assert.match(messages.at(-1), /!urgent #release due:2026-10-30/);
+
+  assert.equal(await run(["edit", "T0002", "--priority", "high", "--tags", "docs,release"], options), 0);
+  assert.equal(await run(["done", "T0002"], options), 0);
+  assert.equal(await run(["reopen", "T0002"], options), 0);
+  assert.equal(await run(["remove", "T0002"], options), 0);
+  assert.equal(await run(["list", "--search", "docs", "--all"], options), 0);
+  assert.equal(messages.at(-1), "No tasks found.");
+  assert.deepEqual(errors, []);
+});
+
+test("CLI reports invalid planning options", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "miniboard-options-"));
+  const filePath = join(directory, "tasks.json");
+  const errors = [];
+  const options = { filePath, errorOutput: (message) => errors.push(message) };
+
+  assert.equal(await run(["add", "bad", "--priority", "maximum"], options), 1);
+  assert.equal(await run(["list", "--all", "--done"], options), 1);
+  assert.match(errors[0], /Invalid priority/);
+  assert.match(errors[1], /Choose only one/);
 });
 
