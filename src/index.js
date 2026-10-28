@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { writeFile } from "node:fs/promises";
 
 import { parseArguments, rejectUnknownOptions } from "./arguments.js";
-import { summarize, toMarkdown } from "./report.js";
+import { summarize, toBoard, toMarkdown } from "./report.js";
 import {
   addTask,
   completeTask,
@@ -34,6 +34,7 @@ export function helpText() {
     "  miniboard edit <task-id> [--title text] [--priority level]",
     "                 [--tags a,b] [--due YYYY-MM-DD|none]",
     "  miniboard remove <task-id>",
+    "  miniboard board [--tag name] [--search text]",
     "  miniboard summary",
     "  miniboard export <report.md>",
     "  miniboard --help | --version",
@@ -151,14 +152,28 @@ export async function run(args = process.argv.slice(2), options = {}) {
     }
 
     if (command === "summary") {
-      const summary = summarize(tasks);
-      output(`${summary.completed}/${summary.total} complete (${summary.completionRate}%), ${summary.open} open`);
+      const summary = summarize(tasks, options.today);
+      output(`${summary.completed}/${summary.total} complete (${summary.completionRate}%), ${summary.open} open, ${summary.overdue} overdue`);
+      return 0;
+    }
+
+    if (command === "board") {
+      const parsed = parseArguments(rest);
+      rejectUnknownOptions(parsed.options, ["tag", "search"]);
+      if (parsed.positionals.length > 0) throw new TypeError(`Unexpected argument: ${parsed.positionals[0]}`);
+      const result = queryTasks(tasks, {
+        state: "open",
+        tag: parsed.options.tag,
+        search: parsed.options.search,
+        today: options.today,
+      });
+      output(toBoard(result, options.today));
       return 0;
     }
 
     if (command === "export") {
       const destination = resolve(rest[0] ?? "miniboard-report.md");
-      await writeFile(destination, toMarkdown(tasks), "utf8");
+      await writeFile(destination, toMarkdown(tasks, { today: options.today }), "utf8");
       output(`Exported report to ${destination}`);
       return 0;
     }
