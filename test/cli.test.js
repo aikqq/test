@@ -9,7 +9,7 @@ import { formatTaskList, helpText, run } from "../src/index.js";
 test("help describes the executable", () => {
   const help = helpText();
 
-  assert.match(help, /MiniBoard 0\.3\.1/);
+  assert.match(help, /MiniBoard 1\.0\.0/);
   assert.match(help, /miniboard --help/);
 });
 
@@ -37,8 +37,8 @@ test("CLI summarizes and exports the board", async () => {
   await run(["summary"], options);
   await run(["export", reportPath], options);
 
-  assert.equal(messages[2], "1/1 complete (100%), 0 open");
-  assert.match(await readFile(reportPath, "utf8"), /T0001 \| Done \| publish demo/);
+  assert.equal(messages[2], "1/1 complete (100%), 0 open, 0 overdue");
+  assert.match(await readFile(reportPath, "utf8"), /T0001 \| Done \| normal \| — \| — \| publish demo/);
 });
 
 test("formats open and completed tasks", () => {
@@ -48,6 +48,14 @@ test("formats open and completed tasks", () => {
   ]);
 
   assert.equal(text, "[ ] T0001  first\n[x] T0002  second");
+});
+
+test("formats planning metadata when present", () => {
+  const text = formatTaskList([
+    { id: "T0007", title: "deploy", completed: false, priority: "urgent", tags: ["release"], dueDate: "2026-10-30" },
+  ]);
+
+  assert.equal(text, "[ ] T0007  deploy  !urgent #release due:2026-10-30");
 });
 
 test("CLI adds, lists and completes a task", async () => {
@@ -67,5 +75,58 @@ test("CLI adds, lists and completes a task", async () => {
     "Completed T0001",
     "[x] T0001  prepare demo",
   ]);
+});
+
+test("CLI supports metadata, filters and lifecycle commands", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "miniboard-planning-"));
+  const filePath = join(directory, "tasks.json");
+  const messages = [];
+  const errors = [];
+  const options = {
+    filePath,
+    today: "2026-10-28",
+    output: (message) => messages.push(message),
+    errorOutput: (message) => errors.push(message),
+  };
+
+  assert.equal(await run(["add", "Ship", "release", "--priority", "urgent", "--tag", "release", "--due", "2026-10-30"], options), 0);
+  assert.equal(await run(["add", "Write", "docs", "--tag", "docs"], options), 0);
+  assert.equal(await run(["list", "--tag", "release"], options), 0);
+  assert.match(messages.at(-1), /!urgent #release due:2026-10-30/);
+
+  assert.equal(await run(["edit", "T0002", "--priority", "high", "--tags", "docs,release"], options), 0);
+  assert.equal(await run(["done", "T0002"], options), 0);
+  assert.equal(await run(["reopen", "T0002"], options), 0);
+  assert.equal(await run(["remove", "T0002"], options), 0);
+  assert.equal(await run(["list", "--search", "docs", "--all"], options), 0);
+  assert.equal(messages.at(-1), "No tasks found.");
+  assert.deepEqual(errors, []);
+});
+
+test("CLI renders a filtered priority board", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "miniboard-board-"));
+  const filePath = join(directory, "tasks.json");
+  const messages = [];
+  const options = { filePath, today: "2026-10-28", output: (message) => messages.push(message) };
+
+  await run(["add", "Overdue", "release", "--priority", "urgent", "--tag", "release", "--due", "2026-10-27"], options);
+  await run(["add", "Routine", "cleanup", "--priority", "low", "--tag", "maintenance"], options);
+  assert.equal(await run(["board", "--tag", "release"], options), 0);
+
+  assert.match(messages.at(-1), /URGENT \(1\)/);
+  assert.match(messages.at(-1), /OVERDUE 2026-10-27/);
+  assert.doesNotMatch(messages.at(-1), /Routine cleanup/);
+});
+
+test("CLI reports invalid planning options", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "miniboard-options-"));
+  const filePath = join(directory, "tasks.json");
+  const errors = [];
+  const options = { filePath, errorOutput: (message) => errors.push(message) };
+
+  assert.equal(await run(["add", "bad", "--priority", "maximum"], options), 1);
+  assert.equal(await run(["list", "--all", "--done"], options), 1);
+  assert.match(errors[0], /Invalid priority/);
+  assert.match(errors[1], /Choose only one/);
 });
 
