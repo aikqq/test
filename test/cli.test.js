@@ -9,7 +9,7 @@ import { formatTaskList, helpText, run } from "../src/index.js";
 test("help describes the executable", () => {
   const help = helpText();
 
-  assert.match(help, /MiniBoard 0\.3\.1/);
+  assert.match(help, /MiniBoard 1\.0\.0/);
   assert.match(help, /miniboard --help/);
 });
 

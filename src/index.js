@@ -17,7 +17,7 @@ import {
   saveTasks,
 } from "./task-store.js";
 
-const VERSION = "0.3.1";
+const VERSION = "1.0.0";
 
 export function helpText() {
   return [
